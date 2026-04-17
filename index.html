@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IXIA Live Camera Module</title>
+
+<style>
+body{
+  font-family:sans-serif;
+  background:#0f172a;
+  color:white;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  padding:20px;
+}
+.video-box{
+  position:relative;
+}
+video, canvas{
+  width:100%;
+  max-width:400px;
+  border-radius:16px;
+}
+button{
+  margin-top:12px;
+  padding:12px 18px;
+  border:none;
+  border-radius:10px;
+  background:#14b8a6;
+  color:white;
+  cursor:pointer;
+}
+.switch{
+  background:#0ea5e9;
+}
+</style>
+</head>
+
+<body>
+
+<h2>📷 IXIA Live Camera</h2>
+
+<div class="video-box">
+  <video id="video" autoplay playsinline></video>
+</div>
+
+<button onclick="capture()">📸 Ambil Foto</button>
+<button class="switch" onclick="switchCamera()">🔄 Ganti Kamera</button>
+
+<canvas id="canvas" style="display:none;"></canvas>
+
+<script>
+let currentFacing = "environment";
+let stream;
+
+const video = document.getElementById('video');
+
+async function startCamera(){
+  if(stream){
+    stream.getTracks().forEach(track => track.stop());
+  }
+
+  try{
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: currentFacing }
+    });
+    video.srcObject = stream;
+  }catch(err){
+    alert("Kamera error: " + err);
+  }
+}
+
+function switchCamera(){
+  currentFacing = currentFacing === "environment" ? "user" : "environment";
+  startCamera();
+}
+
+function capture(){
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+
+  ctx.drawImage(video, 0, 0);
+
+  const base64 = canvas.toDataURL('image/jpeg', 0.8);
+
+  // kirim ke aplikasi utama
+  if(window.opener){
+    window.opener.postMessage({
+      type:'photo',
+      base64: base64,
+      source:'ixia-live-camera'
+    }, '*');
+  }
+
+  setTimeout(()=>window.close(), 800);
+}
+
+startCamera();
+</script>
+
+</body>
+</html>
